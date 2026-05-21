@@ -1,0 +1,51 @@
+# ==========================================
+# Variáveis de Ambiente (NUNCA versionar)
+# ==========================================
+backend/.env
+.env
+.env.local
+.env.production
+
+# ==========================================
+# Python
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.egg-info/
+dist/
+build/
+
+# Ambientes virtuais
+.venv/
+venv/
+ENV/
+
+# ==========================================
+# Node.js / Frontend
+# ==========================================
+node_modules/
+frontend/node_modules/
+frontend/dist/
+
+# ==========================================
+# IDE e Editores
+# ==========================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ==========================================
+# Sistema Operacional
+# ==========================================
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ==========================================
+# Gemini / AI Assistants
+# ==========================================
+.gemini/
