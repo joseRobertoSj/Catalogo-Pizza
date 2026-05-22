@@ -80,7 +80,7 @@ const finalizarPedido = async () => {
     const data = await response.json();
 
     if (!response.ok) {
-      // INTERCEPTAÇÃO DE ERROS DA API (Diretriz Crítica de Validação Centralizada)
+      // Intercepta erros da API e mostra uma mensagem clara para o cliente.
       // Se for um erro do Pydantic/FastAPI, extraímos a mensagem detalhada do JSON
       if (data.detail) {
         if (Array.isArray(data.detail)) {

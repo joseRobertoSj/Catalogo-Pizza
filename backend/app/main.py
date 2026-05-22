@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -122,9 +122,18 @@ def obter_produto(produto_id: int, db: Session = Depends(get_db)):
         )
     return produto
 
+# Função auxiliar para disparar o webhook do n8n em segundo plano (Background Task)
+def disparar_webhook_n8n(url: str, payload: dict, user: Optional[str] = None, password: Optional[str] = None):
+    try:
+        auth = (user, password) if user and password else None
+        response = requests.post(url, json=payload, auth=auth, timeout=10.0)
+        print(f"[n8n Webhook] Disparado com sucesso via tarefa em segundo plano! Status: {response.status_code}")
+    except requests.exceptions.RequestException as e:
+        print(f"[n8n Webhook Error] Falha ao enviar requisição para o n8n: {e}")
+
 # 3. Criar novo pedido (Checkout)
 @app.post("/pedidos", status_code=status.HTTP_201_CREATED)
-def criar_pedido(pedido_data: schemas.PedidoCreateSchema, db: Session = Depends(get_db)):
+def criar_pedido(pedido_data: schemas.PedidoCreateSchema, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     # Validação do Carrinho (Diretriz Crítica de Centralização no Backend)
     if not pedido_data.itens:
         raise HTTPException(
@@ -198,13 +207,25 @@ def criar_pedido(pedido_data: schemas.PedidoCreateSchema, db: Session = Depends(
         ]
     }
 
-    # Nota de execução
-    try:
-        print(f"\n[Webhook Trigger] Pedido #{novo_pedido.id} registrado com sucesso!")
-        print(f"Payload pronto para o n8n: {payload_webhook}\n")
-    except Exception as e:
-        # Evita falhas no endpoint se o console do Windows não suportar caracteres UTF-8/emojis
-        pass
+    # --- DISPARO DE WEBHOOK PARA O N8N ---
+    import os
+    n8n_webhook_url = os.getenv("N8N_WEBHOOK_URL")
+    if n8n_webhook_url:
+        try:
+            user = os.getenv("N8N_WEBHOOK_USER")
+            password = os.getenv("N8N_WEBHOOK_PASSWORD")
+            print(f"[n8n Webhook] Agendando disparo em segundo plano para o pedido #{novo_pedido.id}...")
+            background_tasks.add_task(
+                disparar_webhook_n8n, 
+                n8n_webhook_url, 
+                payload_webhook, 
+                user, 
+                password
+            )
+        except Exception as e:
+            print(f"[n8n Webhook Error] Erro ao agendar tarefa de webhook: {e}")
+    else:
+        print(f"[n8n Webhook] N8N_WEBHOOK_URL não configurada no .env. Ignorando disparo.")
 
 
     return {

@@ -59,11 +59,11 @@ const valorTotal = computed(() => {
 
 <template>
   <div id="app">
-    <!-- Header Premium -->
+    <!-- Header -->
     <header class="header">
       <span class="badge">Aberto para pedidos</span>
-      <h1 style="display: flex; align-items: center; gap: 8px; justify-content: center;">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="width: 28px; height: 28px; color: var(--primary); filter: drop-shadow(0 0 6px var(--primary-glow-strong));">
+      <h1>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
         </svg>
         <span>Sabor & Arte Delivery</span>
@@ -72,7 +72,7 @@ const valorTotal = computed(() => {
     </header>
 
     <!-- Catálogo de Produtos -->
-    <main style="flex-grow: 1; display: flex; flex-direction: column;">
+    <main class="app-main">
       <Catalogo @add-to-cart="adicionarAoCarrinho" />
     </main>
 

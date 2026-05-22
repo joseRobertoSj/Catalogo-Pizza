@@ -200,15 +200,74 @@ App.vue (carrinho, totalItens, valorTotal)
            └── @fechar
 ```
 
-### **Passo 4: Automação de Fluxo e Mensageria (n8n)**
+### **Passo 4: Automação de Fluxo e Mensageria (n8n & Discord)**
 
-A integração nativa com o WhatsApp elimina a necessidade de o comerciante gerenciar múltiplos painéis complexos durante a correria operacional.
+A integração nativa com o **n8n** e canais de comunicação em tempo real (como **Discord Webhook** e WhatsApp) elimina a necessidade de o comerciante gerenciar múltiplos painéis complexos durante a correria operacional. As notificações chegam instantaneamente na cozinha e no canal da gerência assim que um cliente finaliza um pedido.
+
+#### **Arquitetura Assíncrona via FastAPI (Background Tasks)**
+Para garantir uma experiência de compra instantânea e sem travamentos no checkout do frontend (onde lentidões ou falhas na rede externa poderiam travar o navegador do cliente), a API do backend dispara a automação do n8n de forma assíncrona:
+1. O backend processa as validações de estoque, calcula os preços reais do banco e salva o pedido no Supabase.
+2. O FastAPI responde instantaneamente `HTTP 201 Created` para o cliente Vue.js.
+3. O envio do payload para o n8n é agendado em segundo plano usando `BackgroundTasks` da biblioteca nativa do FastAPI, processando a requisição de forma resiliente com tratamento de erros isolado e `timeout` seguro.
 
 #### **Arquitetura do Workflow no n8n**
 
-1. **Nó de Entrada (Webhook Trigger):** Escuta requisições do tipo POST. Assim que o FastAPI grava o pedido e calcula o fechamento, ele dispara uma chamada HTTPS contendo o payload completo do pedido estruturado em JSON para a URL do Webhook do n8n.  
-2. **Nó de Processamento e Formatação (Code / Set Node):** Recebe o JSON e faz a montagem da string de texto que o atendente e o cliente lerão.  
-3. **Nó de Envio do WhatsApp (WhatsApp Enterprise API ou Gateway de Envio):** Dispara as mensagens estruturadas.
+1. **Nó de Entrada (Webhook Trigger):** Escuta requisições do tipo POST no caminho `/webhook/novo-pedido`. Ele é configurado com a opção *Respond: Immediately* para liberar a API do backend instantaneamente com um status HTTP 200, processando o fluxo subsequente de forma autônoma.
+2. **Nó de Formatação Inteligente (Code Node - JS):** Recebe o JSON. Como os dados de envio POST no n8n vêm aninhados dentro de um objeto chamado `body`, o nó executa um script JavaScript blindado que extrai com segurança os dados de dentro de `body`, mapeia os itens do carrinho e gera uma mensagem elegante em Markdown pronta para leitura.
+3. **Nó de Envio do Discord (Discord Webhook):** Conecta-se diretamente ao canal da pizzaria no Discord através do Webhook oficial, enviando o conteúdo da mensagem formatada no campo `content` usando expressões nativas do n8n.
+
+#### **Código JavaScript de Formatação Blindado (Code Node)**
+Este script de processamento foi desenhado para ser 100% resiliente, evitando falhas de propriedades não definidas (`Cannot read properties of undefined`) mesmo se o n8n sofrer mudanças de versão (`$input.all()` vs `items`) ou se algum dado opcional do pedido for omitido:
+
+```javascript
+// 1. Captura os dados brutos de entrada compatível com n8n moderno e legado
+let dadosBrutos = null;
+if (typeof $json !== 'undefined') {
+  dadosBrutos = $json;
+} else if (typeof $input !== 'undefined' && $input.all().length > 0) {
+  dadosBrutos = $input.all()[0].json;
+} else if (typeof items !== 'undefined' && items.length > 0) {
+  dadosBrutos = items[0].json;
+}
+
+if (!dadosBrutos) {
+  throw new Error("Não foi possível encontrar os dados da entrada.");
+}
+
+// 2. Extração inteligente do corpo do Webhook (POST body)
+const pedido = dadosBrutos.body ? dadosBrutos.body : dadosBrutos;
+
+// 3. Garante que os itens sejam tratados sempre como lista
+const itens = Array.isArray(pedido.itens) ? pedido.itens : [];
+
+// 4. Formata o resumo do carrinho com preços formatados para real (R$)
+const itensFormatados = itens.map(item => {
+  const quant = item.quantidade || 1;
+  const preco = item.preco_unitario || item.preco || 0;
+  const prod = item.produto || item.nome || 'Produto';
+  return `• ${quant}x ${prod} - R$ ${(preco * quant).toFixed(2).replace('.', ',')}`;
+}).join('\n') || '• Nenhum item informado';
+
+// 5. Detecta dinamicamente a modalidade (Entrega em casa vs Balcão)
+const enderecoFormatado = pedido.endereco 
+  ? `📍 **Endereço:** ${pedido.endereco}`
+  : `🛵 **Modalidade:** Retirada no Balcão`;
+
+// 6. Constrói a mensagem visual em Markdown premium para o Discord
+const mensagem = `🚨 **NOVO PEDIDO RECEBIDO!** 🚨\n\n` +
+  `👤 **Cliente:** ${pedido.cliente || pedido.nome_cliente || 'Desconhecido'}\n` +
+  `📞 **Contato:** ${pedido.telefone || 'Não informado'}\n` +
+  `${enderecoFormatado}\n\n` +
+  `----------------------------------\n` +
+  `📋 **Resumo do Pedido:**\n` +
+  `${itensFormatados}\n` +
+  `----------------------------------\n\n` +
+  `💰 **Total do Pedido:** R$ ${Number(pedido.total || 0).toFixed(2).replace('.', ',')}\n` +
+  `💳 **Forma de Pagamento:** ${pedido.forma_pagamento || 'Não informada'}\n\n` +
+  `🛵 **Status:** Aguardando confirmação da cozinha.`;
+
+return [{ json: { mensagem } }];
+```
 
 #### **Payload do Webhook (Estrutura JSON)**
 
@@ -216,10 +275,10 @@ A integração nativa com o WhatsApp elimina a necessidade de o comerciante gere
 {
   "pedido_id": 42,
   "cliente": "João Silva",
-  "telefone": "(11) 99999-9999",
+  "telefone": "11999999999",
   "endereco": "Rua das Flores, 123 - Apto 42",
   "forma_pagamento": "PIX",
-  "total": 126.00,
+  "total": 101.00,
   "status": "recebido",
   "itens": [
     {
@@ -236,26 +295,27 @@ A integração nativa com o WhatsApp elimina a necessidade de o comerciante gere
 }
 ```
 
-#### **Exemplo de Formatação da Mensagem de Saída:**
+#### **Visual da Notificação Recebida no Discord:**
 
-```
-🚨 *NOVO PEDIDO RECEBIDO!* 🚨
+```text
+🚨 NOVO PEDIDO RECEBIDO! 🚨
 
-👤 *Cliente:* João Silva
-📞 *Contato:* (11) 99999-9999
-📍 *Endereço:* Rua das Flores, 123 - Apto 42
+👤 Cliente: João Silva
+📞 Contato: 11999999999
+📍 Endereço: Rua das Flores, 123 - Apto 42
 
 ----------------------------------
-📋 *Resumo do Pedido:*
+📋 Resumo do Pedido:
 • 2x Pizza Calabresa Gourmet - R$ 90,00
 • 1x Coca-Cola 2L Gelada - R$ 11,00
 ----------------------------------
 
-💰 *Total do Pedido:* R$ 101,00
-💳 *Forma de Pagamento:* PIX
+💰 Total do Pedido: R$ 101,00
+💳 Forma de Pagamento: PIX
 
-🛵 *Status:* Aguardando confirmação da cozinha.
+🛵 Status: Aguardando confirmação da cozinha.
 ```
+
 
 ---
 
@@ -506,8 +566,8 @@ app.add_middleware(
 
 ### **7.3. Variáveis de Ambiente**
 
-* O arquivo `.env` contém credenciais sensíveis do Supabase e está listado no `.gitignore`.
-* Em produção, utilizar variáveis de ambiente do servidor (Render, Railway, Heroku) ao invés de arquivo `.env`.
+* O arquivo `.env` contém credenciais sensíveis do Supabase e as chaves de integração do n8n (`N8N_WEBHOOK_URL`, `N8N_WEBHOOK_USER`, `N8N_WEBHOOK_PASSWORD`), estando devidamente listado no `.gitignore` para proteção das credenciais.
+* Em produção, utilizar variáveis de ambiente do servidor (Render, Railway, Heroku) ao invés do arquivo `.env`.
 
 ### **7.4. URL da API em Produção**
 
