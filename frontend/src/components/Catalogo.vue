@@ -20,7 +20,8 @@ const buscarProdutos = async () => {
   try {
     carregando.value = true;
     erro.value = null;
-    const response = await fetch('http://localhost:8000/produtos');
+    const apiHost = window.location.hostname || 'localhost';
+    const response = await fetch(`http://${apiHost}:8000/produtos`);
     if (!response.ok) {
       throw new Error('Falha ao carregar o catálogo de produtos.');
     }

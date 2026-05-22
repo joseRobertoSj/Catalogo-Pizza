@@ -69,7 +69,8 @@ const finalizarPedido = async () => {
   try {
     enviando.value = true;
     
-    const response = await fetch('http://localhost:8000/pedidos', {
+    const apiHost = window.location.hostname || 'localhost';
+    const response = await fetch(`http://${apiHost}:8000/pedidos`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
