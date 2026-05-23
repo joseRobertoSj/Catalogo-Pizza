@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks
+from fastapi import FastAPI, Depends, HTTPException, status, BackgroundTasks, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List, Optional
@@ -121,6 +121,102 @@ def obter_produto(produto_id: int, db: Session = Depends(get_db)):
             detail="Produto não encontrado ou inativo no catálogo."
         )
     return produto
+
+# --- ROTAS ADMINISTRATIVAS (CRUD) ---
+
+# Função auxiliar para verificar autenticação simples do admin
+def verificar_admin_token(x_admin_token: Optional[str] = Header(None)):
+    if x_admin_token != "sabor-arte-admin-secreto":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Acesso não autorizado! Chave de administração inválida."
+        )
+
+# A. Listar todos os produtos (incluindo ativos e inativos) no Painel Admin
+@app.get("/admin/produtos", response_model=List[schemas.ProdutoResponse])
+def admin_listar_produtos(db: Session = Depends(get_db), token: None = Depends(verificar_admin_token)):
+    return db.query(models.Produto).order_by(models.Produto.id.desc()).all()
+
+# B. Criar novo produto
+@app.post("/produtos", response_model=schemas.ProdutoResponse, status_code=status.HTTP_201_CREATED)
+def criar_produto(produto_data: schemas.ProdutoCreate, db: Session = Depends(get_db), token: None = Depends(verificar_admin_token)):
+    # Evitar duplicados pelo nome
+    existente = db.query(models.Produto).filter(models.Produto.nome == produto_data.nome).first()
+    if existente:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Já existe um produto cadastrado com o nome '{produto_data.nome}'."
+        )
+    
+    novo_produto = models.Produto(
+        nome=produto_data.nome,
+        descricao=produto_data.descricao,
+        preco=Decimal(str(produto_data.preco)),
+        categoria=produto_data.categoria,
+        url_imagem=produto_data.url_imagem,
+        ativo=produto_data.ativo if produto_data.ativo is not None else True
+    )
+    db.add(novo_produto)
+    db.commit()
+    db.refresh(novo_produto)
+    return novo_produto
+
+# C. Atualizar produto existente
+@app.put("/produtos/{produto_id}", response_model=schemas.ProdutoResponse)
+def atualizar_produto(produto_id: int, produto_data: schemas.ProdutoUpdate, db: Session = Depends(get_db), token: None = Depends(verificar_admin_token)):
+    produto = db.query(models.Produto).filter(models.Produto.id == produto_id).first()
+    if not produto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Produto não encontrado."
+        )
+    
+    # Atualizar campos enviados
+    if produto_data.nome is not None:
+        produto.nome = produto_data.nome
+    if produto_data.descricao is not None:
+        produto.descricao = produto_data.descricao
+    if produto_data.preco is not None:
+        produto.preco = Decimal(str(produto_data.preco))
+    if produto_data.categoria is not None:
+        produto.categoria = produto_data.categoria
+    if produto_data.url_imagem is not None:
+        produto.url_imagem = produto_data.url_imagem
+    if produto_data.ativo is not None:
+        produto.ativo = produto_data.ativo
+
+    db.commit()
+    db.refresh(produto)
+    return produto
+
+# D. Excluir produto (Exclusão Inteligente)
+@app.delete("/produtos/{produto_id}")
+def excluir_produto(produto_id: int, db: Session = Depends(get_db), token: None = Depends(verificar_admin_token)):
+    produto = db.query(models.Produto).filter(models.Produto.id == produto_id).first()
+    if not produto:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Produto não encontrado."
+        )
+    
+    # Verificar se o produto já está em algum pedido
+    em_uso = db.query(models.ItemPedido).filter(models.ItemPedido.produto_id == produto_id).first()
+    if em_uso:
+        # Se já foi ordenado, apenas desativa para preservar histórico de vendas
+        produto.ativo = False
+        db.commit()
+        return {
+            "status": "Sucesso",
+            "mensagem": f"O produto '{produto.nome}' está em uso em pedidos passados. Ele foi desativado do catálogo para preservar o histórico."
+        }
+    
+    # Se nunca foi ordenado, deleta fisicamente
+    db.delete(produto)
+    db.commit()
+    return {
+        "status": "Sucesso",
+        "mensagem": f"O produto '{produto.nome}' foi removido permanentemente do banco de dados."
+    }
 
 # Função auxiliar para disparar o webhook do n8n em segundo plano (Background Task)
 def disparar_webhook_n8n(url: str, payload: dict, user: Optional[str] = None, password: Optional[str] = None):

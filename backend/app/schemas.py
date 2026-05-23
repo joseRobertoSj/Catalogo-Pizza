@@ -16,6 +16,22 @@ class ProdutoResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ProdutoCreate(BaseModel):
+    nome: str = Field(..., min_length=2, description="O nome deve conter pelo menos 2 caracteres")
+    descricao: Optional[str] = None
+    preco: float = Field(..., gt=0, description="O preço deve ser maior que 0")
+    categoria: str = Field(..., description="Categoria do produto (ex: pizzas, doces, bebidas)")
+    url_imagem: Optional[str] = None
+    ativo: Optional[bool] = True
+
+class ProdutoUpdate(BaseModel):
+    nome: Optional[str] = None
+    descricao: Optional[str] = None
+    preco: Optional[float] = None
+    categoria: Optional[str] = None
+    url_imagem: Optional[str] = None
+    ativo: Optional[bool] = None
+
 # --- SCHEMAS DE ITENS DO PEDIDO ---
 class ItemPedidoSchema(BaseModel):
     produto_id: int
