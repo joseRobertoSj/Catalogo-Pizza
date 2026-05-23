@@ -205,7 +205,9 @@ App.vue (carrinho, totalItens, valorTotal)
 A integração nativa com o **n8n** e canais de comunicação em tempo real (como **Discord Webhook** e WhatsApp) elimina a necessidade de o comerciante gerenciar múltiplos painéis complexos durante a correria operacional. As notificações chegam instantaneamente na cozinha e no canal da gerência assim que um cliente finaliza um pedido.
 
 #### **Arquitetura Assíncrona via FastAPI (Background Tasks)**
+
 Para garantir uma experiência de compra instantânea e sem travamentos no checkout do frontend (onde lentidões ou falhas na rede externa poderiam travar o navegador do cliente), a API do backend dispara a automação do n8n de forma assíncrona:
+
 1. O backend processa as validações de estoque, calcula os preços reais do banco e salva o pedido no Supabase.
 2. O FastAPI responde instantaneamente `HTTP 201 Created` para o cliente Vue.js.
 3. O envio do payload para o n8n é agendado em segundo plano usando `BackgroundTasks` da biblioteca nativa do FastAPI, processando a requisição de forma resiliente com tratamento de erros isolado e `timeout` seguro.
@@ -217,6 +219,7 @@ Para garantir uma experiência de compra instantânea e sem travamentos no check
 3. **Nó de Envio do Discord (Discord Webhook):** Conecta-se diretamente ao canal da pizzaria no Discord através do Webhook oficial, enviando o conteúdo da mensagem formatada no campo `content` usando expressões nativas do n8n.
 
 #### **Código JavaScript de Formatação Blindado (Code Node)**
+
 Este script de processamento foi desenhado para ser 100% resiliente, evitando falhas de propriedades não definidas (`Cannot read properties of undefined`) mesmo se o n8n sofrer mudanças de versão (`$input.all()` vs `items`) ou se algum dado opcional do pedido for omitido:
 
 ```javascript
@@ -315,7 +318,6 @@ return [{ json: { mensagem } }];
 
 🛵 Status: Aguardando confirmação da cozinha.
 ```
-
 
 ---
 
@@ -460,18 +462,21 @@ Toda a iconografia da aplicação utiliza **SVGs inline do estilo Lucide** com o
 #### **Componentes — Detalhamento Funcional**
 
 **`Catalogo.vue`**
+
 * Busca produtos da API com `fetch('http://localhost:8000/produtos')` no `onMounted`.
 * Filtro local por categoria via `computed` (`produtosFiltrados`).
 * Cards com imagem lazy-loaded, efeito de zoom no hover (scale 1.12), e truncagem inteligente de descrição (`-webkit-line-clamp: 2`).
 * Transições de entrada/saída com `<transition-group>` usando curva `cubic-bezier(0.16, 1, 0.3, 1)`.
 
 **`CarrinhoFlutuante.vue`**
+
 * Barra fixa posicionada na parte inferior com gradiente de fade.
 * Badge de quantidade sobre o ícone da sacola.
 * Botão "Ver Sacola" com animação pulsante (`pulse-ring`) para chamar atenção.
 * Transição `fade-slide` para entrar e sair suavemente.
 
 **`CheckoutModal.vue`**
+
 * Bottom-sheet estilo nativo mobile, animado de baixo para cima (`slide-up-modal`).
 * Listagem dos itens com botões `+`/`-` para ajuste de quantidade em tempo real.
 * Toggle `Receber em Casa` / `Retirar no Balcão` com ícones de Bike e Store.
@@ -512,8 +517,8 @@ pip install -r requirements.txt
 python -m uvicorn app.main:app --reload
 ```
 
-* **API:** http://127.0.0.1:8000
-* **Documentação Swagger Interativa:** http://127.0.0.1:8000/docs
+* **API:** <http://127.0.0.1:8000>
+* **Documentação Swagger Interativa:** <http://127.0.0.1:8000/docs>
 
 ### **6.2. Frontend**
 
@@ -528,7 +533,7 @@ npm install
 npm run dev
 ```
 
-* **Aplicação:** http://localhost:5173
+* **Aplicação:** <http://localhost:5173>
 
 > **Importante:** O backend precisa estar rodando antes de acessar o frontend, pois o catálogo é carregado via API.
 

@@ -69,7 +69,7 @@ const valorTotal = computed(() => {
 <template>
   <div id="app" :class="{ 'admin-layout': modoAdmin }">
     <!-- Header -->
-    <header class="header">
+    <header class="header" :class="{ 'header-admin-mode': modoAdmin }">
       <div class="header-top">
         <span class="badge">Aberto para pedidos</span>
         <button class="btn-admin-toggle" @click="modoAdmin = !modoAdmin">
@@ -92,7 +92,7 @@ const valorTotal = computed(() => {
         </svg>
         <span>Sabor & Arte Delivery</span>
       </h1>
-      <p>{{ modoAdmin ? 'Painel de Controle de Produtos e Operações' : 'Cardápio inteligente integrado diretamente com a cozinha' }}</p>
+      <p v-if="!modoAdmin">Cardápio inteligente integrado diretamente com a cozinha</p>
     </header>
 
     <!-- Área Administrativa -->
