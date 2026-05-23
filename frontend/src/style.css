@@ -947,6 +947,8 @@ select:focus-visible {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
   margin-bottom: 12px;
   width: 100%;
 }
@@ -1463,6 +1465,36 @@ select:focus-visible {
   .admin-table th:nth-child(4),
   .admin-table td:nth-child(4) {
     display: none;
+  }
+}
+
+/* Responsividade adicional de Altíssima Fidelidade para Celulares Estreitos */
+@media (max-width: 480px) {
+  .header {
+    padding: 16px 16px 12px;
+  }
+  
+  .header h1 {
+    font-size: 21px !important;
+  }
+  
+  .header p {
+    font-size: 13px;
+  }
+  
+  .btn-admin-toggle {
+    padding: 6px 10px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  
+  .badge {
+    padding: 4px 8px;
+    font-size: 10px;
+  }
+  
+  .cart-floating-bar {
+    padding: 10px 16px;
   }
 }
 
