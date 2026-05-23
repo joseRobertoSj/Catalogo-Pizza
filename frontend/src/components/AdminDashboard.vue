@@ -16,6 +16,10 @@ const erro = ref(null);
 // Chave/Token padrão de autenticação com o Backend
 const ADMIN_TOKEN = 'sabor-arte-admin-secreto';
 
+// Base da API dinâmica para rodar em computadores ou celulares locais
+const apiHost = window.location.hostname || 'localhost';
+const API_BASE = `http://${apiHost}:8000`;
+
 // Estado do Modal de Formulário
 const modalAberto = ref(false);
 const editandoId = ref(null);
@@ -50,7 +54,7 @@ const buscarProdutos = async () => {
     erro.value = null;
     
     // Passa o header de segurança exigido pela API
-    const response = await fetch('http://localhost:8000/admin/produtos', {
+    const response = await fetch(`${API_BASE}/admin/produtos`, {
       headers: {
         'X-Admin-Token': ADMIN_TOKEN
       }
@@ -78,7 +82,7 @@ const alternarAtivo = async (produto) => {
   try {
     const novoStatus = !produto.ativo;
     
-    const response = await fetch(`http://localhost:8000/produtos/${produto.id}`, {
+    const response = await fetch(`${API_BASE}/produtos/${produto.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -142,8 +146,8 @@ const salvarProduto = async () => {
     erroForm.value = '';
 
     const url = editandoId.value 
-      ? `http://localhost:8000/produtos/${editandoId.value}`
-      : 'http://localhost:8000/produtos';
+      ? `${API_BASE}/produtos/${editandoId.value}`
+      : `${API_BASE}/produtos`;
     
     const method = editandoId.value ? 'PUT' : 'POST';
 
@@ -186,7 +190,7 @@ const excluirProduto = async (produto) => {
   }
 
   try {
-    const response = await fetch(`http://localhost:8000/produtos/${produto.id}`, {
+    const response = await fetch(`${API_BASE}/produtos/${produto.id}`, {
       method: 'DELETE',
       headers: {
         'X-Admin-Token': ADMIN_TOKEN
