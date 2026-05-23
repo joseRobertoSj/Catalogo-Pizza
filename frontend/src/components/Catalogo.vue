@@ -51,6 +51,16 @@ const formatarMoeda = (valor) => {
   }).format(valor);
 };
 
+// Formatar URL do Unsplash para máxima performance automática
+const obterImagemUrl = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=300';
+  if (url.includes('images.unsplash.com')) {
+    const baseUrl = url.split('?')[0];
+    return `${baseUrl}?q=80&w=300`;
+  }
+  return url;
+};
+
 const adicionarAoCarrinho = (produto) => {
   emit('add-to-cart', produto);
 };
@@ -149,7 +159,7 @@ onMounted(() => {
           class="product-card"
         >
           <div class="img-container">
-            <img :src="produto.url_imagem" :alt="produto.nome" loading="lazy" />
+            <img :src="obterImagemUrl(produto.url_imagem)" :alt="produto.nome" loading="lazy" />
           </div>
           
           <div class="info">

@@ -215,6 +215,16 @@ const excluirProduto = async (produto) => {
 const totalProdutos = computed(() => produtos.value.length);
 const ativosCount = computed(() => produtos.value.filter(p => p.ativo).length);
 const inativosCount = computed(() => produtos.value.filter(p => !p.ativo).length);
+
+// Formatar URL do Unsplash para máxima performance automática
+const obterImagemUrl = (url) => {
+  if (!url) return 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100';
+  if (url.includes('images.unsplash.com')) {
+    const baseUrl = url.split('?')[0];
+    return `${baseUrl}?q=80&w=100`;
+  }
+  return url;
+};
 </script>
 
 <template>
@@ -316,7 +326,7 @@ const inativosCount = computed(() => produtos.value.filter(p => !p.ativo).length
             <tr v-for="produto in produtos" :key="produto.id" :class="{ 'row-inactive': !produto.ativo }">
               <td>
                 <img 
-                  :src="produto.url_imagem || 'https://images.unsplash.com/photo-1513104890138-7c749659a591?q=80&w=100'" 
+                  :src="obterImagemUrl(produto.url_imagem)" 
                   class="admin-thumb" 
                   alt="Thumb" 
                 />
