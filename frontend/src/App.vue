@@ -70,6 +70,18 @@ const valorTotal = computed(() => {
   <div id="app" :class="{ 'admin-layout': modoAdmin }">
     <!-- Header -->
     <header class="header" :class="{ 'header-admin-mode': modoAdmin }">
+      <div class="header-brand">
+        <h1>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
+          </svg>
+          <span>Sabor & Arte Delivery</span>
+        </h1>
+        <p class="header-subtitle">
+          {{ modoAdmin ? 'Painel de Controle de Produtos e Operações' : 'Cardápio inteligente integrado diretamente com a cozinha' }}
+        </p>
+      </div>
+
       <div class="header-top">
         <span class="badge">Aberto para pedidos</span>
         <button class="btn-admin-toggle" @click="modoAdmin = !modoAdmin">
@@ -86,13 +98,6 @@ const valorTotal = computed(() => {
           <span>{{ modoAdmin ? 'Voltar ao Cardápio' : 'Painel de Gestão' }}</span>
         </button>
       </div>
-      <h1>
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z" />
-        </svg>
-        <span>Sabor & Arte Delivery</span>
-      </h1>
-      <p v-if="!modoAdmin">Cardápio inteligente integrado diretamente com a cozinha</p>
     </header>
 
     <!-- Área Administrativa -->
