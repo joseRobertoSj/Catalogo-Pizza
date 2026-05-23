@@ -67,7 +67,7 @@ const valorTotal = computed(() => {
 </script>
 
 <template>
-  <div id="app">
+  <div id="app" :class="{ 'admin-layout': modoAdmin }">
     <!-- Header -->
     <header class="header">
       <div class="header-top">
